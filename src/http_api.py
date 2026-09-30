@@ -84,6 +84,16 @@ def make_handler(service: Service, static_dir: str):
                     actor, role = self._identity()
                     del actor
                     self._json(200, {"items": service.list_items(role)})
+                elif path.startswith("/api/items/") and path.endswith("/snapshots"):
+                    item_id = int(path.split("/")[3])
+                    actor, role = self._identity()
+                    del actor
+                    self._json(200, {"snapshots": service.snapshots(item_id, role)})
+                elif path.startswith("/api/items/") and path.endswith("/equipment"):
+                    item_id = int(path.split("/")[3])
+                    actor, role = self._identity()
+                    del actor
+                    self._json(200, {"equipment": service.list_equipment(item_id, role)})
                 elif path.startswith("/api/items/") and path.endswith("/records"):
                     item_id = int(path.split("/")[3])
                     actor, role = self._identity()
@@ -110,6 +120,20 @@ def make_handler(service: Service, static_dir: str):
                 body = self._body()
                 if path == "/api/items":
                     self._json(201, service.create_item(body, actor, role))
+                elif (path.startswith("/api/items/")
+                      and "/records/" in path and path.endswith("/close")):
+                    parts = path.split("/")
+                    item_id = int(parts[3]); record_id = int(parts[5])
+                    self._json(200, service.close_record(
+                        item_id, record_id, body, actor, role))
+                elif path.startswith("/api/items/") and path.endswith("/inspections"):
+                    item_id = int(path.split("/")[3])
+                    self._json(201, service.add_inspection(
+                        item_id, body, actor, role))
+                elif path.startswith("/api/items/") and path.endswith("/equipment"):
+                    item_id = int(path.split("/")[3])
+                    self._json(201, service.upsert_equipment(
+                        item_id, body, actor, role))
                 elif path.startswith("/api/items/") and path.endswith("/records"):
                     item_id = int(path.split("/")[3])
                     self._json(201, service.add_record(item_id, body, actor, role))

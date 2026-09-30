@@ -13,10 +13,18 @@ class ConflictError(DomainError): kind=ErrorKind.CONFLICT
 SEVERITIES=['low', 'medium', 'high', 'critical']; STATES=['draft', 'submitted', 'inspection', 'correction', 'approved']; ROLES=['applicant', 'inspector', 'compliance_manager', 'viewer']
 @dataclass(frozen=True)
 class Item:
-    id:int; title:str; description:str; severity:str; quantity:float; threshold:float; status:str; version:int; external_ref:Optional[str]; created_by:str; created_at:str; updated_at:str
+    id:int; title:str; description:str; severity:str; quantity:float; threshold:float; status:str; version:int; external_ref:Optional[str]; created_by:str; created_at:str; updated_at:str; equipment_version:int=1; snapshot_version:int=0
 @dataclass(frozen=True)
 class Record:
-    id:int; item_id:int; kind:str; detail:str; status:str; external_ref:Optional[str]; created_by:str; created_at:str
+    id:int; item_id:int; kind:str; detail:str; status:str; external_ref:Optional[str]; created_by:str; created_at:str; measured:Optional[float]=None; idempotency_key:Optional[str]=None
+@dataclass(frozen=True)
+class Snapshot:
+    id:int; item_id:int; snapshot_version:int; source:str; effect:str; trigger:str
+    quantity:float; threshold:float; equipment_version:int; open_records:int
+    exceedance:bool; revision_of:Optional[int]; revision_no:int; reason:str; created_by:str; created_at:str
+@dataclass(frozen=True)
+class Equipment:
+    id:int; item_id:int; name:str; spec:str; version:int; status:str; external_ref:Optional[str]; created_by:str; created_at:str; updated_at:str
 @dataclass(frozen=True)
 class AuditEntry:
     id:int; action:str; entity_type:str; entity_id:int; actor:str; detail:Dict[str,Any]; previous_hash:str; entry_hash:str; created_at:str
@@ -34,5 +42,13 @@ def require_number(value,field,minimum=0.0):
     except (TypeError,ValueError): raise ValidationError(f"{field}必须是数字")
     if number<minimum: raise ValidationError(f"{field}不能小于{minimum}")
     return number
+def require_int(value,field,minimum=1):
+    if isinstance(value,bool): raise ValidationError(f"{field}必须是整数")
+    if isinstance(value,str):
+        try: value=int(value)
+        except ValueError: raise ValidationError(f"{field}必须是整数")
+    if not isinstance(value,int): raise ValidationError(f"{field}必须是整数")
+    if value<minimum: raise ValidationError(f"{field}不能小于{minimum}")
+    return value
 def ensure_role(role,allowed):
     if role not in allowed: raise PermissionDenied("当前角色无权执行该操作")
